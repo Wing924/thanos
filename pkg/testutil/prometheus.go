@@ -99,6 +99,7 @@ func ForeachPrometheus(t *testing.T, testFn func(t testing.TB, p *Prometheus)) {
 			testutil.Ok(t, err)
 
 			testFn(t, p)
+			testutil.Ok(t, p.Stop())
 		}); !ok {
 			return
 		}
@@ -143,10 +144,12 @@ func newPrometheus(version string, prefix string) (*Prometheus, error) {
 
 // Start running the Prometheus instance and return.
 func (p *Prometheus) Start() error {
-	if !p.running {
-		if err := p.db.Close(); err != nil {
-			return err
-		}
+	if p.running {
+		return errors.New("Already started")
+	}
+
+	if err := p.db.Close(); err != nil {
+		return err
 	}
 	p.running = true
 
@@ -205,9 +208,8 @@ func (p *Prometheus) Restart() error {
 	if err := p.cmd.Process.Signal(syscall.SIGTERM); err != nil {
 		return errors.Wrap(err, "failed to kill Prometheus. Kill it manually")
 	}
-
+	p.running = false
 	_ = p.cmd.Wait()
-
 	return p.Start()
 }
 
@@ -239,15 +241,19 @@ func (p *Prometheus) SetConfig(s string) (err error) {
 
 // Stop terminates Prometheus and clean up its data directory.
 func (p *Prometheus) Stop() error {
+	if !p.running {
+		return nil
+	}
+
 	if err := p.cmd.Process.Signal(syscall.SIGTERM); err != nil {
 		return errors.Wrapf(err, "failed to Prometheus. Kill it manually and clean %s dir", p.db.Dir())
 	}
-
 	time.Sleep(time.Second / 2)
 	return p.cleanup()
 }
 
 func (p *Prometheus) cleanup() error {
+	p.running = false
 	return os.RemoveAll(p.db.Dir())
 }
 

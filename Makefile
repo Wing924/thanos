@@ -31,8 +31,8 @@ GOBINDATA_VERSION ?= a9c83481b38ebb1c4eb8f0168fd4b10ca1d3c523
 GOBINDATA         ?= $(GOBIN)/go-bindata-$(GOBINDATA_VERSION)
 GIT               ?= $(shell which git)
 # golangci-lint which includes errcheck, goimports
-# and more. v1.16.0
-GOLANGCILINT_VERSION ?= 97ea1cbb21bbf5e4d0e8bcc0f9243385e9262dcc
+# and more. v1.17.1
+GOLANGCILINT_VERSION ?= 4ba2155996359eabd8800d1fbf3e3a9777c80490
 GOLANGCILINT ?= $(GOBIN)/golangci-lint-$(GOLANGCILINT_VERSION)
 
 WEB_DIR           ?= website
@@ -178,7 +178,7 @@ tarballs-release: $(PROMU)
 .PHONY: test
 test: check-git test-deps
 	@echo ">> running all tests. Do export THANOS_SKIP_GCS_TESTS='true' or/and THANOS_SKIP_S3_AWS_TESTS='true' or/and THANOS_SKIP_AZURE_TESTS='true' and/or THANOS_SKIP_SWIFT_TESTS='true' and/or THANOS_SKIP_TENCENT_COS_TESTS='true' if you want to skip e2e tests against real store buckets"
-	THANOS_TEST_PROMETHEUS_VERSIONS="$(PROM_VERSIONS)" THANOS_TEST_ALERTMANAGER_PATH="alertmanager-$(ALERTMANAGER_VERSION)" go test $(shell go list ./... | grep -v /vendor/ | grep -v /benchmark/);
+	THANOS_TEST_PROMETHEUS_VERSIONS="$(PROM_VERSIONS)" THANOS_TEST_ALERTMANAGER_PATH="alertmanager-$(ALERTMANAGER_VERSION)" go test $(shell go list ./... | grep -v /vendor/);
 
 .PHONY: test-only-gcs
 test-only-gcs: export THANOS_SKIP_S3_AWS_TESTS = true
@@ -232,7 +232,7 @@ web: web-pre-process $(HUGO)
 lint: check-git $(GOLANGCILINT)
 	@echo ">> checking formatting"
 	@$(GOLANGCILINT) run -v --disable-all -E goimports ./...
-	@echo ">> linting all of the Go files"
+	@echo ">> linting all of the Go files. GOGC=${GOGC}"
 	@$(GOLANGCILINT) run -v ./...
 
 .PHONY: web-serve
